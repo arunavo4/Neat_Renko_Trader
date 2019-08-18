@@ -152,18 +152,7 @@ def evaluate_renko(brick, history, column_name):
 
 
 # Func that returns optimal box size
-def get_optimal_box_size(csv_file):
-    df = pd.read_csv(csv_file,
-                     names=['Date', 'Open', 'High', 'Low', 'Close', 'Vol'])
-
-    # Drop the header
-    df = df.drop(df.index[0])
-    # parse date
-    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y %I:%M:%S %p')
-    # Set index
-    df = df.set_index('Date')
-    # reindex the df to make it look right
-    df = df.reindex(index=df.index[::-1])
+def get_optimal_box_size(df):
 
     # Get ATR values (it needs to get boundaries)
     atr = talib.ATR(high=np.double(df.High),
@@ -183,29 +172,5 @@ def get_optimal_box_size(csv_file):
     # Set Optimal Brick size
     brick_size = round(renko_obj_sfo.set_brick_size(auto=False, brick_size=optimal_brick_sfo), 4)
 
-    last_close = float(df['Close'][-1])
-    return brick_size, last_close
+    return brick_size
 
-
-# # Load the parent dir
-# files = glob.glob("/home/ubuntu/zerodha/renko/historical_data/*.csv")
-#
-# keys = []
-# values = []
-#
-# # Generate Optimal Box size for each Stock
-# for f in files:
-#     name = (os.path.split(f)[-1]).split("-")[0]
-#     opt_size, price = get_optimal_box_size(f)
-#     keys.append(name)
-#     values.append(opt_size)
-#     print("{0}: {1} --> {2}%".format(name, opt_size, cal_per(opt_size, price)))
-#
-# # Convert into Dict
-# opt_renko_box = dict(zip(keys, values))
-#
-# # Write to file
-# with open('/home/ubuntu/zerodha/renko/opt_renko_box.out', 'wb') as fp:
-#     pickle.dump(opt_renko_box, fp)  # use `pickle.loads` to do the reverse
-#
-# print("\n\n### Written to opt_renko_box.out ###")

@@ -5,6 +5,8 @@
 
 from collections import deque
 from statistics import mean
+
+import cv2
 import math
 import gym
 import talib
@@ -14,9 +16,8 @@ import matplotlib.patches as patches
 import pandas as pd
 import numpy as np
 from gym import spaces
-from lib.features.indicators import get_pattern_columns
 from lib.render.StockTradingGraph import StockTradingGraph
-from lib.features.transform import log_and_difference, max_min_normalize
+from lib.renko.Renko import get_optimal_box_size
 
 # logging
 import logging
@@ -116,8 +117,8 @@ class StockTradingEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
 
         # Observes the price action, indicators, account action, price forecasts
-        self.observation_space = spaces.Box(low=0, high=255, shape=((2*self.obs_window)-1, self.obs_window, 3), dtype=np.uint8)
-        # self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(self.obs_window, self.obs_window, 3),
+                                            dtype=np.uint8)
 
     # Setting brick size. Auto mode is preferred, it uses history
     def set_brick_size(self, HLC_history=None, auto=True, brick_size=10.0):
@@ -125,7 +126,6 @@ class StockTradingEnv(gym.Env):
             self.brick_size = self.__get_optimal_brick_size(HLC_history.iloc[:, [0, 1, 2]])
         else:
             self.brick_size = brick_size
-        return self.brick_size
 
     def __renko_rule(self, last_price):
         # Get the gap between two prices
@@ -226,31 +226,44 @@ class StockTradingEnv(gym.Env):
             self.done = True
 
     def _generate_color_graph(self):
+
         renko_graph_directions = [float(i) for i in self.renko_directions]
 
         renko_graph_directions = renko_graph_directions[-self.obs_window:]
 
-        color_graph = np.zeros([(2*self.obs_window)-1, self.obs_window, 3], dtype=np.uint8)
+        color_graph = np.zeros([self.obs_window, self.obs_window, 3], dtype=np.uint8)
         color_graph.fill(255)
 
         fill_color = [[255, 0, 0], [0, 255, 0], [255, 255, 255]]
 
-        i = math.ceil((color_graph.shape[0]/2))
+        i = init_i = math.ceil((color_graph.shape[0] / 2))
 
-        for j in range(len(renko_graph_directions)):
+        values_of_i = []
+
+        for j in range(1, len(renko_graph_directions)):
+            i = i - 1 if renko_graph_directions[j] == 1 else i + 1
+            values_of_i.append(i)
+
+        spread_of_i = max(values_of_i) - min(values_of_i)
+
+        dist_btw_min_i = init_i - min(values_of_i)
+
+        i = int((color_graph.shape[0] - spread_of_i) / 2) + dist_btw_min_i
+        color_graph[i, 0] = fill_color[1] if renko_graph_directions[0] == 1 else fill_color[0]
+
+        for j in range(1, len(renko_graph_directions)):
+            i = i - 1 if renko_graph_directions[j] == 1 else i + 1
             color_graph[i, j] = fill_color[1] if renko_graph_directions[j] == 1 else fill_color[0]
-
-            i = i + 1 if renko_graph_directions[j] == 1 else i - 1
 
         return color_graph
 
-    def plot_renko(self, col_up='g', col_down='r'):
+    def plot_renko(self, col_up='g', col_down='r', path=None):
         fig, ax = plt.subplots(1, figsize=(20, 10))
         ax.set_xlabel('Renko bars')
         ax.set_ylabel('Price')
 
-        self.renko_prices = [float(i) for i in self.renko_prices]
-        self.renko_directions = [float(i) for i in self.renko_directions]
+        self.renko_prices = [float(i) for i in self.renko_prices[-self.obs_window:]]
+        self.renko_directions = [float(i) for i in self.renko_directions[-self.obs_window:]]
 
         # Calculate the limits of axes
         ax.set_xlim(0.0,
@@ -276,21 +289,27 @@ class StockTradingEnv(gym.Env):
                 )
             )
 
-        plt.show()
-        plt.pause(0.001)
+        if path is not None:
+            plt.savefig(path + str(self.current_step) + '_plot.png')
 
     def _next_observation(self):
-        current_idx = self.current_step + 1
+        while True:
+            observations = self.stationary_df.iloc[self.current_step]
+            new_renko_bars = self.do_next(pd.Series([observations['Close']]))
+            if new_renko_bars > 0:
+                break
+            else:
+                if self.current_step + 1 <= len(self.df) - 1:
+                    self.current_step += 1
+                else:
+                    self.done = True
+                    break
 
-        if self.pre_computed_observation:
-            obs = self.observation_dict[current_idx]
+        return self._grey_n_flatten(self._generate_color_graph())
 
-        else:
-            last_price = self.stationary_df[current_idx]
-            self.do_next(last_price['Close'])
-
-            obs = self._generate_color_graph()
-
+    def _grey_n_flatten(self, obs):
+        obs = cv2.cvtColor(obs, cv2.COLOR_BGR2GRAY)
+        obs = np.ndarray.flatten(obs)
         return obs
 
     def _current_price(self):
@@ -508,8 +527,8 @@ class StockTradingEnv(gym.Env):
             self.profit_per = 0.0
             # Reset Profits for the day
             self.profits = 0.0
-
-            # TODO: Re-calculate Optimal REnko Box size
+            # Set Optimal Box Size
+            self._set_optimal_box_size()
 
         self.position_value = 0
         for p in self.positions:
@@ -553,23 +572,30 @@ class StockTradingEnv(gym.Env):
 
     def _done(self):
         self.done = self.net_worths[-1] < self.initial_balance / 5 or self.current_step == len(self.df) - 1
+        return self.done
 
     def _set_history(self):
         current_idx = self.current_step
-        past_data = self.stationary_df[-self.look_back_window_size + current_idx:current_idx].values
+        past_data = self.stationary_df[-self.look_back_window_size + current_idx:current_idx]
 
         self.build_history(past_data['Close'])
+
+    def _set_optimal_box_size(self):
+        current_idx = self.current_step
+        past_data = self.stationary_df[-self.look_back_window_size + current_idx:current_idx]
+
+        self.set_brick_size(auto=False, brick_size=get_optimal_box_size(past_data))
 
     def reset(self):
         self.balance = self.initial_balance
         self.stock_held = 0
 
-        # TODO: Set optimal renko box size
-
         if int(self.look_back_window_size / 375) > 1:
             self.current_step = int(375) * int(self.look_back_window_size / 375)
         else:
             self.current_step = int(375)
+
+        self._set_optimal_box_size()
 
         self._set_history()
 
@@ -605,7 +631,7 @@ class StockTradingEnv(gym.Env):
         }])
         self.trades = []
 
-        return self._next_observation()
+        return self._grey_n_flatten(self._generate_color_graph())
 
     def step(self, action):
         reward = self._take_action(action)

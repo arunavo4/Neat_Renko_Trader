@@ -6,23 +6,23 @@
 """
 
 import multiprocessing
+
+import cv2
 import numpy as np
 import neat
 from os import path
 import pickle
 from utils.data_utils import load_csv, split_data
-from lib.features.indicators import add_indicators
 from utils.reporter import LoggerReporter
-from lib.env.TraderEnv import StockTradingEnv
+from lib.env.TraderRenkoEnv import StockTradingEnv
 from utils.cache import get_observations
 
 from pytorch_neat.multi_env_eval import MultiEnvEvaluator
 from pytorch_neat.recurrent_net import RecurrentNet
 
-input_data_path = path.join('data', 'dataset', 'small', 'ADANIPORTS-EQ.csv')
+input_data_path = path.join('data', 'dataset', 'ADANIPORTS-EQ.csv')
 
 feature_df = load_csv(input_data_path)
-feature_df = add_indicators(feature_df.reset_index())
 
 train_df, _ = split_data(feature_df)
 
@@ -37,8 +37,8 @@ params = {
 
 max_env_steps = len(train_df) - 1
 
-resume = True
-restore_file = "neat-checkpoint-117"
+resume = False
+restore_file = "neat-checkpoint-0"
 
 
 def make_env(pre_obs, env_params):
@@ -126,6 +126,6 @@ if __name__ == "__main__":
         # with open('obs_dict.pkl', 'wb') as output:
         #     pickle.dump(obs_dict, output, 1)
 
-        run(n_generations=50, n_processes=20, pre_obs=obs_dict)
+        run(n_generations=50, n_processes=2, pre_obs=obs_dict)
     else:
-        run(n_generations=20, n_processes=20)
+        run(n_generations=100, n_processes=2)

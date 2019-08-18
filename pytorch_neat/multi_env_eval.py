@@ -59,20 +59,8 @@ class MultiEnvEvaluator:
 
         step_num = self.envs[0].current_step
         while True:
-            step_num += 1
+            step_num = self.envs[0].current_step + 1
             if self.max_env_steps is not None and step_num == self.max_env_steps:
-                for i, (env, done) in enumerate(zip(self.envs, dones)):
-                    if len(env.daily_profit_per) == 0:
-                        avg_profit = 0.0
-                    else:
-                        avg_profit = round(mean(env.daily_profit_per), 3)
-                    message = "Env #:{} Genome_id # :{} Fitness :{} Final Amt :{} Days :{} Avg Daily Profit :{} %".format(
-                        i, genome_id,
-                        round(fitnesses[i], 2),
-                        round(env.amt, 2), len(env.daily_profit_per),
-                        avg_profit)
-                    print(message)
-                    logger.info(message)
                 break
             if debug:
                 actions = self.activate_net(
@@ -89,6 +77,18 @@ class MultiEnvEvaluator:
                     dones[i] = done
 
             if all(dones):
+                for i, (env, done) in enumerate(zip(self.envs, dones)):
+                    if len(env.daily_profit_per) == 0:
+                        avg_profit = 0.0
+                    else:
+                        avg_profit = round(mean(env.daily_profit_per), 3)
+                    message = "Env #:{} Genome_id # :{} Fitness :{} Final Amt :{} Days :{} Avg Daily Profit :{} %".format(
+                        i, genome_id,
+                        round(fitnesses[i], 2),
+                        round(env.amt, 2), len(env.daily_profit_per),
+                        avg_profit)
+                    print(message)
+                    logger.info(message)
                 break
 
         return sum(fitnesses) / len(fitnesses)
