@@ -1,0 +1,9 @@
+numpy
+pandas
+neat-python
+plotly
+matplotlib
+graphviz
+gym
+talib
+torch
