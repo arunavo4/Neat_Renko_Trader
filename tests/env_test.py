@@ -67,7 +67,7 @@ time_obs = []
 
 frames = []
 
-for i in range(5):
+for i in range(max_env_steps):
     # env.render()
     action = env.action_space.sample() # your agent here (this takes random actions)
 

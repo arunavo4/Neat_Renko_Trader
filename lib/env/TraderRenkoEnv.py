@@ -309,11 +309,13 @@ class StockTradingEnv(gym.Env):
             else:
                 if self.current_step + 1 <= len(self.df) - 1:
                     self.current_step += 1
+                    # Automatically perform hold
+                    self._take_action(action=0)
                 else:
                     self.done = True
                     break
 
-        return self._grey_n_flatten(self.plot_renko())
+        return [float(i) for i in self.renko_directions[-self.obs_window:]]
 
     def _grey_n_flatten(self, obs):
         # obs = cv2.resize(obs, (self.obs_window, int(self.obs_window/2)))
@@ -640,7 +642,7 @@ class StockTradingEnv(gym.Env):
         }])
         self.trades = []
 
-        return self._grey_n_flatten(self.plot_renko())
+        return [float(i) for i in self.renko_directions[-self.obs_window:]]
 
     def step(self, action):
         reward = self._take_action(action)
