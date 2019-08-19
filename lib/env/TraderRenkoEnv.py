@@ -315,7 +315,7 @@ class StockTradingEnv(gym.Env):
                     self.done = True
                     break
 
-        return [float(i) for i in self.renko_directions[-self.obs_window:]]
+        return self._grey_n_flatten(self._generate_color_graph())
 
     def _grey_n_flatten(self, obs):
         # obs = cv2.resize(obs, (self.obs_window, int(self.obs_window/2)))
@@ -642,7 +642,7 @@ class StockTradingEnv(gym.Env):
         }])
         self.trades = []
 
-        return [float(i) for i in self.renko_directions[-self.obs_window:]]
+        return self._grey_n_flatten(self._generate_color_graph())
 
     def step(self, action):
         reward = self._take_action(action)
