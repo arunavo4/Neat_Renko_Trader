@@ -67,7 +67,7 @@ time_obs = []
 
 frames = []
 
-for i in range(max_env_steps):
+for i in range(5):
     # env.render()
     action = env.action_space.sample() # your agent here (this takes random actions)
 
@@ -83,7 +83,7 @@ for i in range(max_env_steps):
     # img_grey.save(path + str(env.current_step) + '_gray.png')
     #
     # array = np.ndarray.flatten(obs)
-    # print(len(array))
+    print(len(observation))
 
     # env.plot_renko(path=path)
 
@@ -113,5 +113,5 @@ env.close()
 #                loop=0)
 
 print("Avg Response Time: ", mean(time_obs))
-print("Theoretical Traversal Time: {} Min".format((mean(time_obs)*max_env_steps)/60))
+# print("Theoretical Traversal Time: {} Min".format((mean(time_obs)*max_env_steps)/60))
 print(len(time_obs))

@@ -5,7 +5,8 @@
 
 from collections import deque
 from statistics import mean
-
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 import cv2
 import math
 import gym
@@ -257,10 +258,10 @@ class StockTradingEnv(gym.Env):
 
         return color_graph
 
-    def plot_renko(self, col_up='g', col_down='r', path=None):
-        fig, ax = plt.subplots(1, figsize=(20, 10))
-        ax.set_xlabel('Renko bars')
-        ax.set_ylabel('Price')
+    def plot_renko(self, col_up='#00FF00', col_down='#FF0000', path=None):
+        fig = Figure(figsize=(20,10), dpi=20)
+        canvas = FigureCanvas(fig)
+        ax = fig.gca()
 
         self.renko_prices = [float(i) for i in self.renko_prices[-self.obs_window:]]
         self.renko_directions = [float(i) for i in self.renko_directions[-self.obs_window:]]
@@ -288,9 +289,16 @@ class StockTradingEnv(gym.Env):
                     facecolor=col
                 )
             )
+        ax.axis('off')
+
+        canvas.draw()  # draw the canvas, cache the renderer
+        width, height = fig.get_size_inches() * fig.get_dpi()
+        image = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(int(height), int(width), 3)
 
         if path is not None:
             plt.savefig(path + str(self.current_step) + '_plot.png')
+
+        return image
 
     def _next_observation(self):
         while True:
@@ -305,9 +313,10 @@ class StockTradingEnv(gym.Env):
                     self.done = True
                     break
 
-        return self._grey_n_flatten(self._generate_color_graph())
+        return self._grey_n_flatten(self.plot_renko())
 
     def _grey_n_flatten(self, obs):
+        # obs = cv2.resize(obs, (self.obs_window, int(self.obs_window/2)))
         obs = cv2.cvtColor(obs, cv2.COLOR_BGR2GRAY)
         obs = np.ndarray.flatten(obs)
         return obs
@@ -631,7 +640,7 @@ class StockTradingEnv(gym.Env):
         }])
         self.trades = []
 
-        return self._grey_n_flatten(self._generate_color_graph())
+        return self._grey_n_flatten(self.plot_renko())
 
     def step(self, action):
         reward = self._take_action(action)
