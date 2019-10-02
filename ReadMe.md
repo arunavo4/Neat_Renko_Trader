@@ -1,3 +1,5 @@
+![](https://img.shields.io/badge/status-Active-green)
+
 ## NEAT Trader on Gym Env
 
 #### This is based on the knowledge gained from previous experiments.
