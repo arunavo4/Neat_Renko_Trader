@@ -71,11 +71,11 @@ for i in range(10):
     # env.render()
     action = env.action_space.sample() # your agent here (this takes random actions)
 
-    frames.append(Image.fromarray(observation))
-    path = '../genome_plots/'
-
-    img = Image.fromarray(observation)
-    img.save(path + str(env.current_step) + '.png')
+    # frames.append(Image.fromarray(observation))
+    # path = '../genome_plots/'
+    #
+    # img = Image.fromarray(observation)
+    # img.save(path + str(env.current_step) + '.png')
 
     # env.plot_renko(path=path)
 

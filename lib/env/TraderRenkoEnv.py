@@ -314,13 +314,18 @@ class StockTradingEnv(gym.Env):
                     self.done = True
                     break
 
-        return self._grey_n_flatten(self._generate_color_graph())
+        return self._transform_obs(self._generate_color_graph())
 
-    def _grey_n_flatten(self, obs, width=32, height=32):
-        obs = cv2.cvtColor(obs, cv2.COLOR_BGR2GRAY)
-        # obs = cv2.resize(obs, (width, height), interpolation=cv2.INTER_AREA)
-        # obs = np.expand_dims(obs, -1)
-        # obs = np.ndarray.flatten(obs)
+    def _transform_obs(self, obs, resize=True, width=32, height=32, binary=False):
+        obs = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY)
+
+        if binary:
+            (thr, obs) = cv2.threshold(obs, 10, 255, cv2.THRESH_BINARY)
+
+        if resize:
+            obs = cv2.resize(obs, (width, height), interpolation=cv2.INTER_AREA)
+        obs = np.expand_dims(obs, -1)
+        obs = np.ndarray.flatten(obs)
         return obs
 
     def _current_price(self):
@@ -642,7 +647,7 @@ class StockTradingEnv(gym.Env):
         }])
         self.trades = []
 
-        return self._grey_n_flatten(self._generate_color_graph())
+        return self._transform_obs(self._generate_color_graph())
 
     def step(self, action):
         reward = self._take_action(action)
