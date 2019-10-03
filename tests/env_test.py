@@ -67,23 +67,15 @@ time_obs = []
 
 frames = []
 
-for i in range(max_env_steps):
+for i in range(10):
     # env.render()
     action = env.action_space.sample() # your agent here (this takes random actions)
 
-    # frames.append(Image.fromarray(observation))
-    # path = '../genome_plots/'
-    #
-    # img = Image.fromarray(observation)
-    # img.save(path + str(env.current_step) + '.png')
-    #
-    # obs = cv2.cvtColor(observation, cv2.COLOR_BGR2GRAY)
-    #
-    # img_grey = Image.fromarray(obs)
-    # img_grey.save(path + str(env.current_step) + '_gray.png')
-    #
-    # array = np.ndarray.flatten(obs)
-    print(len(observation))
+    frames.append(Image.fromarray(observation))
+    path = '../genome_plots/'
+
+    img = Image.fromarray(observation)
+    img.save(path + str(env.current_step) + '.png')
 
     # env.plot_renko(path=path)
 

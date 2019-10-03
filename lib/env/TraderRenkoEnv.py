@@ -233,7 +233,6 @@ class StockTradingEnv(gym.Env):
         renko_graph_directions = renko_graph_directions[-self.obs_window:]
 
         color_graph = np.zeros([self.obs_window, self.obs_window, 3], dtype=np.uint8)
-        color_graph.fill(255)
 
         fill_color = [[255, 0, 0], [0, 255, 0], [255, 255, 255]]
 
@@ -259,7 +258,7 @@ class StockTradingEnv(gym.Env):
         return color_graph
 
     def plot_renko(self, col_up='#00FF00', col_down='#FF0000', path=None):
-        fig = Figure(figsize=(20,10), dpi=20)
+        fig = Figure(figsize=(20, 10), dpi=20)
         canvas = FigureCanvas(fig)
         ax = fig.gca()
 
@@ -317,10 +316,11 @@ class StockTradingEnv(gym.Env):
 
         return self._grey_n_flatten(self._generate_color_graph())
 
-    def _grey_n_flatten(self, obs):
-        # obs = cv2.resize(obs, (self.obs_window, int(self.obs_window/2)))
+    def _grey_n_flatten(self, obs, width=32, height=32):
         obs = cv2.cvtColor(obs, cv2.COLOR_BGR2GRAY)
-        obs = np.ndarray.flatten(obs)
+        # obs = cv2.resize(obs, (width, height), interpolation=cv2.INTER_AREA)
+        # obs = np.expand_dims(obs, -1)
+        # obs = np.ndarray.flatten(obs)
         return obs
 
     def _current_price(self):

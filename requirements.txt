@@ -5,5 +5,5 @@ plotly
 matplotlib
 graphviz
 gym
-talib
+TA-Lib
 torch
